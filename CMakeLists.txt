@@ -1,0 +1,29 @@
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+
+project(sfml-lab-3)
+
+set(SFML_STATIC_LIBRARIES TRUE)
+
+find_package(Freetype REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(SFML 2 COMPONENTS window graphics system REQUIRED)
+
+add_subdirectory(sfml3.00)
+add_subdirectory(sfml3.01)
+add_subdirectory(sfml3.02)
+add_subdirectory(sfml3.03)
+add_subdirectory(sfml3.04)
+add_subdirectory(sfml2.03)
+add_subdirectory(sfml2.2)
+add_subdirectory(sfml3.1)
+add_subdirectory(sfml2.00)
+add_subdirectory(sfml2.01)
+add_subdirectory(sfml2.02)
+add_subdirectory(sfml1.00(sum))
+add_subdirectory(sfml1.01(fourBalls))
+add_subdirectory(sfml1.02(rectangles))
+add_subdirectory(sfml1.03(convexShape))
+add_subdirectory(sfml1.1(svetofor))
+add_subdirectory(sfml1.2(iniciali))
+add_subdirectory(sfml1.3(domik))
+
