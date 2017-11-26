@@ -26,4 +26,8 @@ add_subdirectory(sfml1.03(convexShape))
 add_subdirectory(sfml1.1(svetofor))
 add_subdirectory(sfml1.2(iniciali))
 add_subdirectory(sfml1.3(domik))
+add_subdirectory(wsp1.1)
+add_subdirectory(wsp1.2)
+add_subdirectory(wsp1.3)
+add_subdirectory(sfml3.1)
 
