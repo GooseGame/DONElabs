@@ -31,4 +31,4 @@ add_subdirectory(wsp1.2)
 add_subdirectory(wsp1.3)
 add_subdirectory(wsp1.4)
 add_subdirectory(sfml3.1)
-
+add_subdirectory(wsp2.4)
