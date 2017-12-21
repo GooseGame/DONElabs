@@ -1,0 +1,1 @@
+add_executable(sfml1.00 main.cpp)

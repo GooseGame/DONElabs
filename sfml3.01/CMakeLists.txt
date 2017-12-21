@@ -1,1 +1,1 @@
-add_executable(301 main.cpp)
+add_executable(sfml3.01 main.cpp)
