@@ -1,26 +1,8 @@
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <cstdlib>
-#include <cmath>
-#include <iostream>
+#include <SFML\Graphics.hpp>
+#include <SFML\Window.hpp>
 #include <SFML\System.hpp>
+#include <cmath>
 
-void init(sf::ConvexShape &pointer)
-{
-    pointer.setPosition({200, 100});
-    pointer.setFillColor(sf::Color(233, 237, 0));
-    pointer.setPointCount(7);
-    pointer.setPoint(0, {200, 150});
-    pointer.setPoint(1, {275, 100});
-    pointer.setPoint(2, {200, 50});
-    pointer.setPoint(3, {200, 75});
-    pointer.setPoint(4, {100, 75});
-    pointer.setPoint(5, {100, 125});
-    pointer.setPoint(6, {200, 125});
-    pointer.setOrigin({200, 100});
-    pointer.setOutlineColor(sf::Color(0, 0, 0));
-    pointer.setOutlineThickness(3);
-}
 float toDegrees(float radians)
 {
     return float(double(radians) * 180.0 / M_PI);
@@ -28,9 +10,55 @@ float toDegrees(float radians)
 
 void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition)
 {
-    std::cout << "mouse x=" << event.x << ", y=" << event.y << std::endl;
-
     mousePosition = {float(event.x), float(event.y)};
+}
+
+void update(const sf::Vector2f &mousePosition, sf::ConvexShape &arrow, float deltaTime)
+{
+    const sf::Vector2f delta = mousePosition - arrow.getPosition();
+    const float maxAnglePerSec = 90;
+    float angle = atan2(delta.y, delta.x);
+    const float maxRotateSpeed = maxAnglePerSec * deltaTime;
+    if (angle < 0)
+    {
+        angle = angle + 2 * M_PI;
+    }
+    float rotationAngle = toDegrees(angle) - arrow.getRotation();
+    float rotateSpeed = std::abs(rotationAngle) * deltaTime;
+    if (rotationAngle != 0)
+    {
+        if (rotationAngle > 0)
+        {
+            if ((rotationAngle - 180) > 0)
+            {
+                arrow.setRotation(arrow.getRotation() - std::min(rotateSpeed, maxRotateSpeed));
+            }
+            else
+            {
+                arrow.setRotation(arrow.getRotation() + std::min(rotateSpeed, maxRotateSpeed));
+            }
+        }
+        else
+        {
+            if ((rotationAngle + 180) < 0)
+            {
+                arrow.setRotation(arrow.getRotation() + std::min(rotateSpeed, maxRotateSpeed));
+            }
+            else
+            {
+                arrow.setRotation(arrow.getRotation() - std::min(rotateSpeed, maxRotateSpeed));
+            }
+        }
+    }
+    const float distance = std::sqrt((delta.x * delta.x) + (delta.y * delta.y));
+    sf::Vector2f direction = {0.f, 0.f};
+    if (distance != 0)
+    {
+        direction = {delta.x / distance, delta.y / distance};
+    }
+    const float maxSpeed = 20.f;
+    const float speed = maxSpeed * deltaTime;
+    arrow.setPosition(arrow.getPosition() + direction * speed);
 }
 
 void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
@@ -52,87 +80,42 @@ void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
     }
 }
 
-void update(const sf::Vector2f &mousePosition, sf::ConvexShape &pointer, float deltaTime)
+void redrawFrame(sf::RenderWindow &window, sf::ConvexShape &arrow)
 {
-
-    sf::Vector2f delta = mousePosition - pointer.getPosition();
-    float angle = atan2(delta.y, delta.x);
-    const float maximAngle = 90;
-    const float maximRotationSpeed = maximAngle * deltaTime;
-    if (angle < 0)
-    {
-        angle = angle + 2 * M_PI;
-    }
-    angle = toDegrees(angle);
-    float rotation = angle - pointer.getRotation();
-    float rotationSpeed = abs(rotation) * deltaTime;
-    if (rotation > 0)
-    {
-        if ((rotation - 180) > 0)
-        {
-            pointer.setRotation(pointer.getRotation() - std::min(rotationSpeed, maximRotationSpeed));
-        }
-        else 
-        {
-            pointer.setRotation(pointer.getRotation() + std::min(rotationSpeed, maximRotationSpeed));
-        }
-    }
-    else
-    {
-        if ((rotation + 180) < 0)
-        {
-            pointer.setRotation(pointer.getRotation() + std::min(rotationSpeed, maximRotationSpeed));
-        }
-        else 
-        {
-            pointer.setRotation(pointer.getRotation() - std::min(rotationSpeed, maximRotationSpeed));
-        }
-    }
-
-    float x = delta.x;
-    float y = delta.y;
-    float dlina = sqrt(pow(x, 2) + pow(y, 2));
-    sf::Vector2f direction = {(x / dlina), (y / dlina)};
-    if (dlina = 0)
-    {
-        direction = {0, 0};
-    }
-    if (dlina = 0)
-    {
-        direction = {0, 0};
-    }
-    float speed = 20.f;
-    sf::Vector2f position = pointer.getPosition();
-    pointer.setPosition({position.x + direction.x * speed * deltaTime, position.y + direction.y * speed * deltaTime});
-}
-
-void redrawFrame(sf::RenderWindow &window, sf::ConvexShape &pointer)
-{
-    window.clear(sf::Color(100, 100, 100));
-    window.draw(pointer);
+    window.clear(sf::Color(255, 255, 255));
+    window.draw(arrow);
     window.display();
 }
-
 int main()
 {
-    sf::Clock clock;
     constexpr unsigned WINDOW_WIDTH = 800;
     constexpr unsigned WINDOW_HEIGHT = 600;
 
+    sf::Clock clock;
+    sf::Vector2f mousePosition = {WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2};
     sf::ContextSettings settings;
-    sf::RenderWindow window(
-        sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}),
-        "Pointer follows mouse", sf::Style::Default, settings);
+    settings.antialiasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}), "Arrow can move", sf::Style::Default, settings);
 
-    sf::ConvexShape pointer;
-    sf::Vector2f mousePosition;
+    sf::ConvexShape arrow;
+    arrow.setPosition({WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2});
+    arrow.setFillColor(sf::Color{255, 255, 0});
+    arrow.setPointCount(7);
+    arrow.setPoint(0, {0, 60});
+    arrow.setPoint(1, {60, 0});
+    arrow.setPoint(2, {0, -60});
+    arrow.setPoint(3, {0, -30});
+    arrow.setPoint(4, {-60, -30});
+    arrow.setPoint(5, {-60, 30});
+    arrow.setPoint(6, {0, 30});
+    arrow.setOutlineColor(sf::Color{0, 0, 0});
+    arrow.setOutlineThickness(3);
 
-    init(pointer);
     while (window.isOpen())
     {
-        const float deltaTime = clock.restart().asSeconds();
         pollEvents(window, mousePosition);
-        update(mousePosition, pointer, deltaTime);
-        redrawFrame(window, pointer);
+        float deltaTime = clock.restart().asSeconds();
+        update(mousePosition, arrow, deltaTime);
+        redrawFrame(window, arrow);
     }
 }

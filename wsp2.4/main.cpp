@@ -2,155 +2,120 @@
 #include <SFML\Window.hpp>
 #include <SFML\System.hpp>
 #include <cmath>
-#include <cstdlib>
-#include <random>
-#include <cassert>
 
-struct PRNG
+float toDegrees(float radians)
 {
-    std::mt19937 engine;
-};
-
-struct Sharic
-{
-    sf::CircleShape body;
-    sf::Vector2f position;
-    sf::Vector2f speed;
-};
-
-void initGenerator(PRNG &generator)
-{
-    const unsigned seed = unsigned(std::time(nullptr));
-    generator.engine.seed(seed);
+    return float(double(radians) * 180.0 / M_PI);
 }
 
-unsigned random(PRNG &generator, unsigned minValue, unsigned maxValue)
+void onMouseMove(const sf::Event::MouseMoveEvent &event, sf::Vector2f &mousePosition)
 {
-    assert(minValue < maxValue);
-    std::uniform_int_distribution<unsigned> distribution(minValue, maxValue);
-    return distribution(generator.engine);
+    mousePosition = {float(event.x), float(event.y)};
 }
 
-sf::Color randomColor(sf::Color (&pattern)[8], PRNG &generator)
+void update(const sf::Vector2f &mousePosition, sf::ConvexShape &arrow, float deltaTime)
 {
-    const unsigned firstInPalitra = random(generator, 0, 7);
-    const unsigned secondInPalitra = random(generator, 0, 7);
-
-    sf::Color firstColor = pattern[firstInPalitra];
-    sf::Color secondColor = pattern[secondInPalitra];
-
-    sf::Color finalColor;
-    finalColor.r = sf::Uint8((firstColor.r + secondColor.r) / 2);
-    finalColor.g = sf::Uint8((firstColor.g + secondColor.g) / 2);
-    finalColor.b = sf::Uint8((firstColor.b + secondColor.b) / 2);
-
-    return finalColor;
-}
-
-float getRandomFloat(PRNG &generator, float minValue, float maxValue)
-{
-    assert(minValue < maxValue);
-    std::uniform_real_distribution<float> distribution(minValue, maxValue);
-    return distribution(generator.engine);
-}
-
-void update(Sharic (&Ball_count)[5], const float deltaTime, float BALL_SIZE)
-{
-    sf::Vector2f deltaPos;
-    sf::Vector2f deltaSpeed;
-    float dlina;
-    for (int i = 0; i < std::size(Ball_count); ++i)
+    const sf::Vector2f delta = mousePosition - arrow.getPosition();
+    const float maxAnglePerSec = 90;
+    float angle = atan2(delta.y, delta.x);
+    const float maxRotateSpeed = maxAnglePerSec * deltaTime;
+    if (angle < 0)
     {
-        Ball_count[i].position = Ball_count[i].body.getPosition();
-        Ball_count[i].position += Ball_count[i].speed * deltaTime;
-
-        for (int si = i + 1; si < std::size(Ball_count); ++si)
+        angle = angle + 2 * M_PI;
+    }
+    float rotationAngle = toDegrees(angle) - arrow.getRotation();
+    float rotateSpeed = std::abs(rotationAngle) * deltaTime;
+    if (rotationAngle != 0)
+    {
+        if (rotationAngle > 0)
         {
-            deltaPos = Ball_count[si].position - Ball_count[i].position;
-            deltaSpeed = Ball_count[si].speed - Ball_count[i].speed;
-
-            dlina = sqrt(pow((deltaPos.x), 2) + pow((deltaPos.y), 2));
-            float change = ((deltaPos.x * deltaSpeed.x) + (deltaPos.y * deltaSpeed.y)) / pow(dlina, 2);
-            if (dlina < (BALL_SIZE + BALL_SIZE))
+            if ((rotationAngle - 180) > 0)
             {
-
-                Ball_count[i].speed = Ball_count[i].speed + change * deltaPos;
-                Ball_count[si].speed = Ball_count[si].speed - change * deltaPos;
+                arrow.setRotation(arrow.getRotation() - std::min(rotateSpeed, maxRotateSpeed));
+            }
+            else
+            {
+                arrow.setRotation(arrow.getRotation() + std::min(rotateSpeed, maxRotateSpeed));
             }
         }
+        else
+        {
+            if ((rotationAngle + 180) < 0)
+            {
+                arrow.setRotation(arrow.getRotation() + std::min(rotateSpeed, maxRotateSpeed));
+            }
+            else
+            {
+                arrow.setRotation(arrow.getRotation() - std::min(rotateSpeed, maxRotateSpeed));
+            }
+        }
+    }
+    const float distance = std::sqrt((delta.x * delta.x) + (delta.y * delta.y));
+    sf::Vector2f direction = {0.f, 0.f};
+    if (distance != 0)
+    {
+        direction = {delta.x / distance, delta.y / distance};
+    }
+    const float maxSpeed = 20.f;
+    const float speed = maxSpeed * deltaTime;
+    arrow.setPosition(arrow.getPosition() + direction * speed);
+}
 
-        if ((Ball_count[i].position.x + 2 * BALL_SIZE >= 800) && (Ball_count[i].speed.x > 0))
+void pollEvents(sf::RenderWindow &window, sf::Vector2f &mousePosition)
+{
+    sf::Event event;
+    while (window.pollEvent(event))
+    {
+        switch (event.type)
         {
-            Ball_count[i].speed.x = -Ball_count[i].speed.x;
+        case sf::Event::Closed:
+            window.close();
+            break;
+        case sf::Event::MouseMoved:
+            onMouseMove(event.mouseMove, mousePosition);
+            break;
+        default:
+            break;
         }
-        if ((Ball_count[i].position.x < 0) && (Ball_count[i].speed.x < 0))
-        {
-            Ball_count[i].speed.x = -Ball_count[i].speed.x;
-        }
-        if ((Ball_count[i].position.y + 2 * BALL_SIZE >= 600) && (Ball_count[i].speed.y > 0))
-        {
-            Ball_count[i].speed.y = -Ball_count[i].speed.y;
-        }
-        if ((Ball_count[i].position.y < 0) && (Ball_count[i].speed.y < 0))
-        {
-            Ball_count[i].speed.y = -Ball_count[i].speed.y;
-        }
-
-        Ball_count[i].body.setPosition(Ball_count[i].position);
     }
 }
 
+void redrawFrame(sf::RenderWindow &window, sf::ConvexShape &arrow)
+{
+    window.clear(sf::Color(255, 255, 255));
+    window.draw(arrow);
+    window.display();
+}
 int main()
 {
-
-    sf::Color pattern[8];
-    pattern[0] = {0, 197, 45};
-    pattern[1] = {13, 1, 55};
-    pattern[2] = {7, 51, 12};
-    pattern[3] = {92, 51, 0};
-    pattern[4] = {76, 102, 0};
-    pattern[5] = {3, 0, 102};
-    pattern[6] = {177, 0, 65};
-    pattern[7] = {23, 51, 0};
-
-    PRNG generator;
-    initGenerator(generator);
-    sf::Clock clock;
-    Sharic Ball_count[5];
-    constexpr unsigned WINDOW_HEIGHT = 600;
     constexpr unsigned WINDOW_WIDTH = 800;
-    float BALL_SIZE = 40;
-    
+    constexpr unsigned WINDOW_HEIGHT = 600;
 
-    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Programmers balls");
+    sf::Clock clock;
+    sf::Vector2f mousePosition = {WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2};
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}), "Arrow can move", sf::Style::Default, settings);
 
-    for (int i = 0; i < std::size(Ball_count); ++i)
-    {
-        Ball_count[i].position = {100.f * i + 25, 100.f + 100 * i};
-        Ball_count[i].body.setPosition(Ball_count[i].position);
-        Ball_count[i].body.setFillColor(randomColor(pattern, generator));
-        Ball_count[i].speed = {getRandomFloat(generator, 10.f, 50.f), getRandomFloat(generator, 51.f, 100.f)};
-        Ball_count[i].body.setRadius(BALL_SIZE);
-    }
+    sf::ConvexShape arrow;
+    arrow.setPosition({WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2});
+    arrow.setFillColor(sf::Color{255, 255, 0});
+    arrow.setPointCount(7);
+    arrow.setPoint(0, {0, 60});
+    arrow.setPoint(1, {60, 0});
+    arrow.setPoint(2, {0, -60});
+    arrow.setPoint(3, {0, -30});
+    arrow.setPoint(4, {-60, -30});
+    arrow.setPoint(5, {-60, 30});
+    arrow.setPoint(6, {0, 30});
+    arrow.setOutlineColor(sf::Color{0, 0, 0});
+    arrow.setOutlineThickness(3);
 
     while (window.isOpen())
     {
-        sf::Event event;
-        const float deltaTime = clock.restart().asSeconds();
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-        }
-
-        update(Ball_count, deltaTime, BALL_SIZE);
-        window.clear();
-        for (int i = 0; i < std::size(Ball_count); ++i)
-        {
-            window.draw(Ball_count[i].body);
-        }
-        window.display();
+        pollEvents(window, mousePosition);
+        float deltaTime = clock.restart().asSeconds();
+        update(mousePosition, arrow, deltaTime);
+        redrawFrame(window, arrow);
     }
 }
